@@ -16,6 +16,10 @@ namespace GoldenBoot.BlockDodge
         public static readonly Color AccentPressed = new Color32(0x80, 0xDE, 0xEA, 0xFF);
         public static readonly Color OnAccent = new Color32(0x00, 0x33, 0x3A, 0xFF);
         public static readonly Color Divider = new Color32(0x33, 0x3F, 0x63, 0xFF);
+        // Buttons placed on a card need their own shade, or they vanish into the card.
+        public static readonly Color Tonal = new Color32(0x2E, 0x3A, 0x60, 0xFF);
+        public static readonly Color TonalPressed = new Color32(0x3A, 0x48, 0x76, 0xFF);
+        public static readonly Color Scrim = new Color(0.07f, 0.09f, 0.17f, 0.6f);
 
         // Signed distance to a rounded box (negative inside), in the same units as the inputs.
         static float RoundedBox(Vector2 p, Vector2 center, Vector2 half, float r)
@@ -62,16 +66,23 @@ namespace GoldenBoot.BlockDodge
         }
 
         // The app icon: falling blocks above the player dot.
-        public static Texture2D Icon(int size, bool withBackground)
+        // rounded: give the background launcher-style rounded corners (for showing the icon inside the app).
+        public static Texture2D Icon(int size, bool withBackground, bool rounded = false)
         {
             var t = NewTex(size, size);
             var px = new Color[size * size];
             float s = size;
+            Vector2 mid = new Vector2(s * 0.5f, s * 0.5f);
             for (int y = 0; y < size; y++)
                 for (int x = 0; x < size; x++)
                 {
                     Vector2 p = new Vector2(x + 0.5f, y + 0.5f);
-                    Color c = withBackground ? Background : new Color(0, 0, 0, 0);
+                    Color c = new Color(0, 0, 0, 0);
+                    if (withBackground)
+                    {
+                        float bgA = rounded ? Mathf.Clamp01(0.5f - RoundedBox(p, mid, mid, 0.22f * s)) : 1f;
+                        c = new Color(Background.r, Background.g, Background.b, bgA);
+                    }
                     float d1 = RoundedBox(p, new Vector2(0.36f, 0.68f) * s, new Vector2(0.16f, 0.065f) * s, 0.03f * s);
                     float d2 = RoundedBox(p, new Vector2(0.64f, 0.48f) * s, new Vector2(0.16f, 0.065f) * s, 0.03f * s);
                     float d3 = (p - new Vector2(0.5f, 0.27f) * s).magnitude - 0.105f * s;

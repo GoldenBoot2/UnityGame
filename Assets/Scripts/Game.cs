@@ -44,8 +44,8 @@ namespace GoldenBoot.BlockDodge
         // GUI
         int styledFor = -1;
         float u; // 1% of the short screen side, in pixels
-        GUIStyle title, big, text, sub, button, secondary, card, hud;
-        Texture2D iconTex, dividerTex;
+        GUIStyle title, big, text, sub, button, secondary, tonal, card, hud;
+        Texture2D iconTex, dividerTex, scrimTex;
 
         void Start()
         {
@@ -59,11 +59,17 @@ namespace GoldenBoot.BlockDodge
             cam.backgroundColor = Art.Background;
             cam.transform.position = new Vector3(0f, 0f, -10f);
 
-            Texture2D bt = Art.RoundedRect(64, 64, 14f, Color.white);
-            blockSprite = Sprite.Create(bt, new Rect(0, 0, 64, 64), new Vector2(0.5f, 0.5f), 64f, 0,
-                SpriteMeshType.FullRect, new Vector4(16, 16, 16, 16));
-            Texture2D ct = Art.RoundedRect(128, 128, 64f, Color.white);
-            circleSprite = Sprite.Create(ct, new Rect(0, 0, 128, 128), new Vector2(0.5f, 0.5f), 128f);
+            // Draw the sprites at the screen's own pixel density (1 texture pixel = 1 screen pixel),
+            // so the rounded edges stay sharp instead of being magnified and blurred.
+            float screenPpu = Mathf.Max(32f, Screen.height / (2f * cam.orthographicSize));
+            int r = Mathf.Max(4, Mathf.RoundToInt(0.12f * screenPpu));
+            int bs = 2 * r + 4;
+            Texture2D bt = Art.RoundedRect(bs, bs, r, Color.white);
+            blockSprite = Sprite.Create(bt, new Rect(0, 0, bs, bs), new Vector2(0.5f, 0.5f), screenPpu, 0,
+                SpriteMeshType.FullRect, new Vector4(r + 1, r + 1, r + 1, r + 1));
+            int d = Mathf.CeilToInt(PlayerRadius * 2f * screenPpu);
+            Texture2D ct = Art.RoundedRect(d, d, d * 0.5f, Color.white);
+            circleSprite = Sprite.Create(ct, new Rect(0, 0, d, d), new Vector2(0.5f, 0.5f), d);
 
             var p = new GameObject("Player");
             playerSr = p.AddComponent<SpriteRenderer>();
@@ -73,11 +79,13 @@ namespace GoldenBoot.BlockDodge
             player = p.transform;
             player.localScale = Vector3.one * PlayerRadius * 2f;
 
-            iconTex = Art.Icon(256, true);
+            iconTex = Art.Icon(256, true, true);
             dividerTex = Art.RoundedRect(4, 4, 0f, Art.Divider);
+            scrimTex = Art.RoundedRect(4, 4, 0f, Art.Scrim);
 
             UpdateBounds();
             ResetField();
+            SetState(State.Menu);
         }
 
         void UpdateBounds()
@@ -111,6 +119,8 @@ namespace GoldenBoot.BlockDodge
         void SetState(State s)
         {
             state = s;
+            // The player belongs to the game field; menu screens show only the UI.
+            player.gameObject.SetActive(s != State.Menu && s != State.About);
             Screen.sleepTimeout = s == State.Playing ? SleepTimeout.NeverSleep : SleepTimeout.SystemSetting;
         }
 
@@ -265,6 +275,7 @@ namespace GoldenBoot.BlockDodge
             int bh = Mathf.RoundToInt(13f * u);
             button = Button(bh, Art.Accent, Art.AccentPressed, Art.OnAccent);
             secondary = Button(bh, Art.Card, Art.CardPressed, Art.Text);
+            tonal = Button(bh, Art.Tonal, Art.TonalPressed, Art.Text);
 
             int r = Mathf.RoundToInt(5f * u);
             card = new GUIStyle();
@@ -335,32 +346,34 @@ namespace GoldenBoot.BlockDodge
 
                 case State.Paused:
                 {
+                    GUI.DrawTexture(new Rect(0, 0, Screen.width, Screen.height), scrimTex);
                     GUI.Label(Centered(cx, area.y + 9f * u, area.width, 12f * u), score.ToString(), hud);
                     Rect c = Centered(cx, area.y + area.height * 0.5f, bw + 12f * u, 52f * u);
                     GUI.Box(c, GUIContent.none, card);
                     GUI.Label(new Rect(c.x, c.y + 5f * u, c.width, 10f * u), "Paused", text);
                     if (GUI.Button(new Rect(c.x + 6f * u, c.y + 18f * u, bw, bh), "Resume", button)) SetState(State.Playing);
-                    if (GUI.Button(new Rect(c.x + 6f * u, c.y + 18f * u + bh + 3f * u, bw, bh), "Menu", secondary))
+                    if (GUI.Button(new Rect(c.x + 6f * u, c.y + 18f * u + bh + 3f * u, bw, bh), "Menu", tonal))
                     { ResetField(); SetState(State.Menu); }
                     break;
                 }
 
                 case State.Over:
                 {
+                    GUI.DrawTexture(new Rect(0, 0, Screen.width, Screen.height), scrimTex);
                     Rect c = Centered(cx, area.y + area.height * 0.5f, bw + 12f * u, 78f * u);
                     GUI.Box(c, GUIContent.none, card);
                     GUI.Label(new Rect(c.x, c.y + 5f * u, c.width, 8f * u), "Game over", sub);
                     GUI.Label(new Rect(c.x, c.y + 13f * u, c.width, 18f * u), score.ToString(), big);
                     GUI.Label(new Rect(c.x, c.y + 32f * u, c.width, 8f * u), newBest ? "New best" : "Best  " + best, sub);
                     if (GUI.Button(new Rect(c.x + 6f * u, c.y + 44f * u, bw, bh), "Play again", button)) StartGame();
-                    if (GUI.Button(new Rect(c.x + 6f * u, c.y + 44f * u + bh + 3f * u, bw, bh), "Menu", secondary))
+                    if (GUI.Button(new Rect(c.x + 6f * u, c.y + 44f * u + bh + 3f * u, bw, bh), "Menu", tonal))
                     { ResetField(); SetState(State.Menu); }
                     break;
                 }
 
                 case State.About:
                 {
-                    Rect c = Centered(cx, area.y + area.height * 0.5f, bw + 12f * u, 92f * u);
+                    Rect c = Centered(cx, area.y + area.height * 0.5f, bw + 12f * u, 84f * u);
                     GUI.Box(c, GUIContent.none, card);
                     float icon = 22f * u;
                     GUI.DrawTexture(new Rect(cx - icon * 0.5f, c.y + 6f * u, icon, icon), iconTex, ScaleMode.ScaleToFit);
@@ -368,7 +381,7 @@ namespace GoldenBoot.BlockDodge
                     GUI.Label(new Rect(c.x, c.y + 38f * u, c.width, 7f * u), "Version " + Application.version, sub);
                     GUI.DrawTexture(new Rect(c.x + 6f * u, c.y + 48f * u, c.width - 12f * u, Mathf.Max(1f, 0.3f * u)), dividerTex);
                     RowLeftRight(new Rect(c.x + 6f * u, c.y + 51f * u, c.width - 12f * u, 10f * u), "Developer", "GoldenBoot");
-                    if (GUI.Button(new Rect(c.x + 6f * u, c.y + 92f * u - bh - 6f * u, bw, bh), "Back", secondary))
+                    if (GUI.Button(new Rect(c.x + 6f * u, c.y + 84f * u - bh - 6f * u, bw, bh), "Back", tonal))
                         SetState(State.Menu);
                     break;
                 }
