@@ -21,6 +21,7 @@ namespace GoldenBoot.BlockDodge
             public SpriteRenderer sr;
             public Vector2 size;
             public float speed;
+            public bool passed;
         }
 
         const float PlayerRadius = 0.35f;
@@ -200,6 +201,7 @@ namespace GoldenBoot.BlockDodge
             b.size = new Vector2(Random.Range(0.7f, 1.8f), Random.Range(0.45f, 0.65f));
             b.speed = Mathf.Min(4f + elapsed * 0.12f, 11f) * Random.Range(0.9f, 1.15f);
             b.sr.size = b.size;
+            b.passed = false;
             float lim = Mathf.Max(0f, halfW - b.size.x * 0.5f);
             b.t.position = new Vector3(Random.Range(-lim, lim), halfH + b.size.y, 0f);
             b.t.gameObject.SetActive(true);
@@ -236,12 +238,18 @@ namespace GoldenBoot.BlockDodge
                     return;
                 }
 
+                // A point the moment the block is dodged (its top edge is below the player).
+                if (!b.passed && bp.y + h.y < p.y - PlayerRadius)
+                {
+                    b.passed = true;
+                    score++;
+                }
+
                 if (bp.y < -halfH - 1f)
                 {
                     b.t.gameObject.SetActive(false);
                     blocks.RemoveAt(i);
                     pool.Push(b);
-                    score++;
                 }
             }
         }
