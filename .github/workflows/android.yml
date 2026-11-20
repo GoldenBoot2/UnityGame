@@ -38,7 +38,9 @@ jobs:
             Library-Android-
 
       - name: Build
-        uses: game-ci/unity-builder@v6
+        # Pinned to v5.0.1: v6 delegates to game-ci/cli, whose Personal .ulf activation fails with
+        # "Code 400 TimeStamp validation failed" (game-ci/unity-test-runner issue 336, open since 13-10-2026).
+        uses: game-ci/unity-builder@v5.0.1
         env:
           UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
           UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
